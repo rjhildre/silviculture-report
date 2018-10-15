@@ -1,0 +1,47 @@
+#index {
+    background-color: rgb(223, 223, 223);
+}
+.top-image {
+    margin:auto;
+    height:suto;
+    width:auto;
+    max-width: 100%;
+    max-height: 100%;
+    text-align: center;
+}
+
+.main-heading {
+    font-size: 3vw;
+    border-bottom: 3px solid currentColor;
+    text-align: center;
+    padding-bottom: 2px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+#left-content {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: large;
+}
+
+#fma-header {
+    border-bottom: 1px solid;
+}
+
+#overlap-detail {
+    border-top: .5px solid;
+}
+
+#overlapping-activities {
+    font-style: italic;
+    color: cornflowerblue !important;
+}
+
+#overlap-header {
+    font-weight: bold;
+    vertical-align: bottom;
+}
+
+@media print {
+    .page-break-after {break-after: always;}
+    .page-break-clear {clear: both}
+}
