@@ -26,7 +26,6 @@
             }
             return false;
         }
-
         $(document).ready(function() {
             $('#timber-sale-form').submit(function() {
                 var salename = $("#sale-name-field").val();
@@ -57,10 +56,11 @@
                 </div>
                 <div class="col-sm-4 offset-sm-1 align-self-center">
                     <form action="fma-report" id="timber-sale-form" target="_blank">
+                        Timber Sale Name - Timber Sale ID:
                         <input list="timber-sales" name="timber-sale" id="sale-name-field" required>
                         <datalist id="timber-sales">
                             {% for timber_sale in timber_sales %}
-                            <option value="{{ timber_sale.1 }}">
+                            <option value="{{ timber_sale.1 }} - {{ timber_sale.0 }}">
                             {% endfor %}
                             </datalist>
                         <input type="submit">

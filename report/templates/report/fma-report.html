@@ -6,29 +6,30 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <title>Silviculture Report</title>
-        <!--------------------------------------------- Bootstrap----------------------->
-        <!-- Latest compiled and minified CSS -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
-        <!-- jQuery library -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-        <!-- Popper JS -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
-        <!-- Latest compiled JavaScript -->
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+       
         <!-- Custom CSS -->
         <link rel="stylesheet" href="{% static 'report/style.css' %}" type="text/css">
+        
+    
+
     </head>
     <body>
+        <!-- ----------------------------- HEADER--------------------------------->
         <div class="container-fluid">
+            <div class="break-after">
             <div class="row justify-content-sm-center">
-                    <div class="col-sm-8"><img class="img-fluid" src="{% static 'report/images/em_dnr_logo_2_color_long_PNG.png' %}" alt="DNR Logo"></div>
+                    <div class="col-sm-8"><img style="width:100%" class="img-fluid" src="C:\apps\silvreport\report\static\report\images\em_dnr_logo_2_color_long_PNG.png" alt="DNR Logo"></div>
             </div>
             <div class="row justify-content-sm-center page-break-after">
                 <div class="col-sm-8"><h2 style="text-align:center">Forest Management Activities (FMAs) Report<br>including information of overlapping FMAs
-                <br>for {{ timber_sale|title }} Timber Sale</h2></div>
+                <br>for {{ timber_sale|title }} Timber Sale</h2>
             </div>
+            </div>
+            </div>
+            <!-------------------------------------TIMBER SALE FMAS-------------------------------->
             {% for k, v in fma_details.items %}
-            <div class="page-break-after">
+            <div class="break-after">
+                <div class="break-after">
                 <div id="fma-header">
                     <div class="row justify-content-sm-center"><h4>Activity Information for FMA: {{ k }}</h4></div>
                     <div class="row">
@@ -58,12 +59,14 @@
                         {{ v.fma_comments|linebreaks }}
                     </div>
                 </div>
+                </div>
+                <!------------------------------------------OVERLAPPING FMAS---------------------------->
                 <div id="overlapping-fmas">
                     <div>
-                        <div class="row">
+                        <div class="row  avoid-break">
                             <div class="col-sm-3"><h4 id="overlapping-activities">Overlapping Activities:</h4></div>
                         </div>
-                        <div class="row" >
+                        <div class="row avoid-break" id = "fma-header" >
                             <div class="col-sm-1" id="overlap-header">FMA ID</div>
                             <div class="col-sm-2" id="overlap-header">FMA Name</div>
                             <div class="col-sm-2" id="overlap-header">Fma Type</div>
@@ -75,6 +78,7 @@
                     </div>
                     {% for fma, overlap_fma, fma_nm, fma_type, fma_tech, fma_date, fma_status, acres, comments in overlapping_fmas %}
                     {% if fma == v.fma_id %}
+                    <div class="avoid-break">
                     <div class="row" id="overlap-detail"> 
                         <div class="col-sm-1">{{ overlap_fma }}</div>
                         <div class="col-sm-2">{{ fma_nm }}</div>
@@ -83,8 +87,86 @@
                         <div class="col-sm-2">{{ fma_date|date:"SHORT_DATE_FORMAT" }}</div>
                         <div class="col-sm-2">{{ fma_status }}</div>
                         <div class="col-sm-1">{{ acres|floatformat:2 }}</div>
-                        <div class="col-sm-12"><strong>Comments:</strong> {{ comments|linebreaks }}</div>
-                    </div>   
+                    </div> 
+                        <div class="row"><div class="col-sm-12"><strong>Comments:</strong> {{ comments|linebreaks }}</div></div>
+                    </div>
+                        <!------------------------------------REGEN TABLE-------------------------------------->
+                        {% if fma_type == "REGEN" %}
+                            <table><caption><h5>Seedlings Planted/Ordered</h5></caption>
+                                <tr>
+                                    <th>Species</th>
+                                    <th>Stock Type</th>
+                                    <th>TPA</th>
+                                    <th>Acres</th>
+                                    <th>Stock Total</th>
+                                </tr>
+                                {% for row in regen %}
+                                    {% if row.0 == overlap_fma %}
+                                            <tr>
+                                                <td>{{ row.1 }}</td>
+                                                <td>{{ row.2 }}</td>
+                                                <td>{{ row.3 }}</td>
+                                                <td>{{ row.4|floatformat:2 }}</td>
+                                                <td>{{ row.5 }}</td>
+                                            </tr>
+                                        
+                                    {% endif %}
+                                {% endfor %}
+                            </table>
+                        {% endif %}
+                        <!-------------------------------------MATERIALS TABLE-------------------------------------------->
+                        {% if fma_type == "VEG_MGMT" %}
+                            <table><caption><h5>Materials Used</h5></caption>
+                                <tr>
+                                    <th>Quantity</th>
+                                    <th>Units</th>
+                                    <th>Quantity/Acre</th>
+                                    <th>Cost</th>
+                                    <th>Cost/Acre</th>
+                                </tr>
+                                {% for row in material %}
+                                    {% if row.0 == overlap_fma %}
+                                        <tr>
+                                            <td>{{ row.1 }}</td>
+                                            <td>{{ row.2 }}</td>
+                                            <td>{{ row.3 }}</td>
+                                            <td>{{ row.4 }}</td>
+                                            <td>{{ row.5 }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </table>
+                        {% endif %}
+                        <!-----------------------------------------SURVEY TABLE--------------------------------------------------->
+                        {% if fma_type == 'FOREST_SURV' and fma_status == 'COMPLETED' %}
+                            <table><caption><h5>Survey Findings</h5></caption>
+                                <tr>
+                                    <th>Species</th>
+                                    <th>TPA All</th>
+                                    <th>TPA Planted</th>
+                                    <th>TPA Natural</th>
+                                    <th>Damage Type</th>
+                                    <th>DBH</th>
+                                    <th>Crow Ratio</th>
+                                    <th>Survival %</th>
+                                </tr>
+                                {% for row in survey %}
+                                    {% if row.0 == overlap_fma %}
+                                        <tr>
+                                            <td>{{ row.1 }}</td>
+                                            <td>{{ row.2 }}</td>
+                                            <td>{{ row.3 }}</td>
+                                            <td>{{ row.4 }}</td>
+                                            <td>{{ row.5 }}</td>
+                                            <td>{{ row.6 }}</td>
+                                            <td>{{ row.7 }}</td>
+                                            <td>{{ row.8 }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </table>
+                        {% endif %}
+                      
                     {% endif %}
                     {% endfor %}
                 </div>
