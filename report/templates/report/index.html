@@ -42,8 +42,8 @@
                 if (datalistValidator(salename)) {
                     return true;
                 }
-                alert("Hmm... your submission of " + salename + " does not seem to be on the list of timber sale names. Please make sure you selected an item \
-                from the dropdown list and then hit submit again.");
+                alert("Hmm... your submission of " + salename + " does not seem to be on the list of timber sale names. Please make sure you selected an item" +
+                "from the dropdown list and then hit submit again.");
                 return false;
             })
         })
@@ -62,13 +62,14 @@
                         if (fmalistValidator(salename)) {
                             return true;
                         }
-                        alert("Hmm... your submission of " + salename + " does not seem to be on the list of fma sale names. Please make sure you selected an item \
-                        from the dropdown list and then hit submit again.");
+                        alert("Hmm... your submission of " + salename + " does not seem to be on the list of fma sale names. Please make sure you selected an item" +
+                        "from the dropdown list and then hit submit again.");
                         return false;
                     })
                 })
                 </script>
     </head>
+    
     <body id="index">
         <div class="container-fluid">
             <div class="row justify-content-sm-center">

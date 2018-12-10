@@ -5,8 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.template import Context
 import logging
-import cx_Oracle #TODO delete this import
-import pdfkit
+import pdfkit #https://ourcodeworld.com/articles/read/241/how-to-create-a-pdf-from-html-in-django
 from report.queries import get_fma_details, get_overlapping_fma_details, \
 get_regen_details, get_material_details, get_survey_details, get_index_form_values
 

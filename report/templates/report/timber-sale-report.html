@@ -15,15 +15,12 @@
         <!-- Required meta tags -->
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <title>Silviculture Report</title>
+        <title>Timber Sale Activity Report</title>
        
         <!-- Custom CSS -->
         <link rel="stylesheet" href="{% static 'report/style.css' %}" type="text/css">
-        
-        
-    
-
     </head>
+
     <body>
         <!-- ----------------------------- HEADER--------------------------------->
         <!-- This was the cover page that I adapted from Zak's origional report. Removed per Eric Aubert.  -->
@@ -39,9 +36,10 @@
             </div>
             </div> -->
             <!-------------------------------------TIMBER SALE FMAS-------------------------------->
+            <!--Loop through the fma_details dictionary. -->
             {% for k, v in fma_details.items %}
             <div>
-                <div class="break-after">
+                <div class="break-after"><!--Break-after class gives us a page break after this section-->
                 <div id="fma-header">
                     <div class="row justify-content-sm-center" id="fma-activity"><h4>Activity Information for FMA: {{ k }}</h4></div>
                     <div class="row">
@@ -79,7 +77,7 @@
                 <!------------------------------------------OVERLAPPING FMAS---------------------------->
                 <div class="break-after" id="overlapping-fmas">
                     <div>
-                        <div class="row  avoid-break">
+                        <div class="row  avoid-break"><!--avoid-break class keeps this content from splitting on print media-->
                             <div class="col-sm-12" id="overlapping-activities"><h4>Overlapping Activities &gt; 0.25 Acres:</h4></div>
                         </div>
                         <div class="row avoid-break" id = "fma-header" >
@@ -92,8 +90,9 @@
                             <div class="col-sm-2" id="overlap-header">Overlap Acres</div>
                         </div>
                     </div>
+                    <!--Loop through list of overlapping_fmas-->
                     {% for fma, overlap_fma, fma_nm, fma_type, fma_tech, fma_date, fma_status, acres, comments in overlapping_fmas %}
-                    {% if fma == v.fma_id and overlap_fma != v.fma_id %}
+                    {% if fma == v.fma_id and overlap_fma != v.fma_id %}<!--Make sure the list of overlapping fmas does not include the fma itself-->
                     <div class="avoid-break">
                     <div class="row" id="overlap-detail"> 
                         <div class="col-sm-1">{{ overlap_fma }}</div>
@@ -109,7 +108,7 @@
                     {% endif %}
                     </div>
                         <!------------------------------------REGEN TABLE-------------------------------------->
-                        {% if overlap_fma in needs_regen_table %}
+                        {% if overlap_fma in needs_regen_table %}<!--Only include the table if it's needed-->
                         <div class="row">
                             <div class="col-sm-4">&nbsp;</div>
                             <div class="col-sm-4">
@@ -206,6 +205,6 @@
                 
             </div>
             {% endfor %}   
-            <div>This page intentionally left blank. </div>
+            <div>This page intentionally left blank. </div><!--break-after will give us a blank page at the end.-->
             
     </body>
