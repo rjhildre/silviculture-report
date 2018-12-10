@@ -20,12 +20,48 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 sk = 'kfq3a)swv-k6a^n0odiswzs!k_25s)#st&a9mp7+=2kuj1k&@4'
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'kfq3a)swv-k6a^n0odiswzs!k_25s)#st&a9mp7+=2kuj1k&@4'
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
+EMAIL_HOST = "mail.dnr.wa.gov"
+SERVER_EMAIL = 'silviculturereport@dnr.wa.gov'
+""" ('Eric Aubert', 'eric.aubert@dnr.wa.gov'),
+    ('Andrew Johnson', 'andrew.johnson@dnr.wa.gov'), 
+    ('Zak Thomas', 'zak.thomas@dnr.wa.gov') """
+# Who gets notified if there is an internal error
+ADMINS = [
+    ('Jason Hildreth', 'jason.hildreth@dnr.wa.gov'),
+    
+    ]
+
 
 ALLOWED_HOSTS = ['*']
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters' : {
+        'file_formatter' : {
+            'format' :'{asctime} {message}',
+            'style' : '{',
+        },
+    },
+    'handlers' : {
+        'file' : {
+            'level' : 'DEBUG',
+            'class' : 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'error_log.log'),
+            'formatter' : 'file_formatter',
+        },
+    },
+    'loggers' : {
+        'file_logger' : {
+            'handlers': ['file'],
+            'level' : 'DEBUG'
+        },
+    },
+}
 
 
 # Application definition

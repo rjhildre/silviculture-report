@@ -2,6 +2,16 @@
 <!DOCTYPE html> 
 <html lang="en">
     <head>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-130356984-1"></script>
+        <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'UA-130356984-1');
+        </script>
+
         <!-- Required meta tags -->
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -38,6 +48,26 @@
             })
         })
         </script>
+        <script>
+                function fmalistValidator(salename) {
+                    var obj = $("#fmas-list").find("option[value='" + salename + "']");
+                    if(obj != null && obj.length>0) {
+                        return true
+                    }
+                    return false;
+                }
+                $(document).ready(function() {
+                    $('#fma-sale-form').submit(function() {
+                        var salename = $("#fma-name-field").val();
+                        if (fmalistValidator(salename)) {
+                            return true;
+                        }
+                        alert("Hmm... your submission of " + salename + " does not seem to be on the list of fma sale names. Please make sure you selected an item \
+                        from the dropdown list and then hit submit again.");
+                        return false;
+                    })
+                })
+                </script>
     </head>
     <body id="index">
         <div class="container-fluid">
@@ -45,25 +75,45 @@
                 <div class="col-sm-8"><img class="img-fluid" src="{% static 'report/images/em_dnr_logo_2_color_long_PNG.png' %}" alt="DNR Logo"></div>
             </div>
             <div class="row justify-content-center">
-                <div class="col-sm-10"><h1 class="main-heading">Forest Management Activities (FMAs) Report Generator</h1></div>
+                <div class="col-sm-10"><h1 class="main-heading">Silvicultural Prescription Report Generator</h1></div>
             </div>
             <div class="row">
                 <div class="col-sm-5 offset-sm-1">
-                    <p id="left-content">Use this tool to generate a pdf report of FMAs (including overlapping FMAs) within your timber sale boundary. Select your
-                        timber sale name from the drop down to the right and click submit. Try typing the name of your 
-                        timber sale in the box to go straight to it.  When you click submit a pdf report will be generated and downloaded to your computer. 
+                    <p id="left-content">Select a timber sale or timber harvest activity, 
+                        then click the “Submit” button to generate a Silvicultural Prescription Report.<br>
+                        Try typing the same of your timber sale or havest activitiy to go straight to it.  
                     </p>
                 </div>
+                <!---------------------------------------------------Timber sale drop down ------------------------------>
                 <div class="col-sm-4 offset-sm-1 align-self-center">
-                    <form action="fma-report" id="timber-sale-form" target="_blank">
-                        Timber Sale Name - Timber Sale ID:
+                    <form action="timber-sale-report" id="timber-sale-form" target="_blank">
+                        Timber Sale Name - ID: <br>
                         <input list="timber-sales" name="timber-sale" id="sale-name-field" required>
                         <datalist id="timber-sales">
                             {% for timber_sale in timber_sales %}
                             <option value="{{ timber_sale.1 }} - {{ timber_sale.0 }}">
                             {% endfor %}
                             </datalist>
-                        <input type="submit">
+                        <input type="submit" value="Submit">
+                    </form>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-5 offset-sm-1">
+                    <p id="left-content">
+                    </p>
+                </div>
+                <!---------------------------------------------------------------FMA dropdown --------------------------------------------->
+                <div class="col-sm-4 offset-sm-1 align-self-center">
+                    <form action="fma-report" id="fma-sale-form" target="_blank">
+                        Harvest Activity Name - ID:<br>
+                        <input list="fmas-list" name="fma" id="fma-name-field" required>
+                        <datalist id="fmas-list">
+                            {% for fma in fmas %}
+                            <option value="{{ fma.0 }} - {{ fma.1 }}"></option>
+                            {% endfor %}
+                            </datalist>
+                        <input type="submit" value="Submit">
                     </form>
                 </div>
             </div>

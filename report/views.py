@@ -4,219 +4,187 @@ from django.template.loader import get_template, render_to_string
 from django.http import HttpResponse 
 from django.shortcuts import render, get_object_or_404
 from django.template import Context
-import cx_Oracle
+import logging
+import cx_Oracle #TODO delete this import
 import pdfkit
-import subprocess
+from report.queries import get_fma_details, get_overlapping_fma_details, \
+get_regen_details, get_material_details, get_survey_details, get_index_form_values
 
-
-# Oracle database connection configuration
+# Oracle database connection configuration, set as environmental variables.
 ORACLE_DATABASE = os.environ.get('ROPA')
-ORACLE_USERNAME = 'gis_layer_user'
-ORACLE_PASSWORD = 'gis_layer_user_ropa'
+ORACLE_USERNAME = os.environ.get('ROPA_USERNAME')
+ORACLE_PASSWORD = os.environ.get('ROPA_PASSWORD')
 
+logger = logging.getLogger('file_logger')
 def index(request):
-  # Query ropa to get a list of timbersale names and id's to populate the selection table of the index page. 
-  connection = cx_Oracle.connect(ORACLE_USERNAME, ORACLE_PASSWORD, ORACLE_DATABASE)
-  cursor = connection.cursor()
-  cursor.execute("select TS_ID, TS_NM from SHARED_LRM.TS order by TS_NM")
-  timber_sales = cursor.fetchall()
-  cursor.close()
-  connection.close()
-  return render(request, 'report/index.html', {'timber_sales' : timber_sales})
-
-def fma_report(request):
-  timber_sale=request.GET.get('timber-sale')
-  timber_sale = timber_sale.split(' -')[0]
-  # Create a list of FMAs, and their details, that overlap the timber harvest FMAs
-  fma_overlap_query = f"""
-  SELECT
-    SHARED_LRM.FMA_V.FMA_ID,
-    SHARED_LRM.FMA_V_1.FMA_ID,
-    FMA_V_1.FMA_NM,
-    FMA_V_1.FMA_TYPE_CD,
-    FMA_V_1.TECHNIQUE_CD,
-    FMA_V_1.FMA_DT,
-    FMA_V_1.FMA_STATUS_CD,
-    SHARED_LRM.XREF_OVL_FMA_OVERLAP.ACRES_OVERLAP,
-    FMA_V_1.COMMENTS
-  FROM
-    SHARED_LRM.TS
-    INNER JOIN SHARED_LRM.FMA_V
-    INNER JOIN SHARED_LRM.XREF_OVL_FMA_OVERLAP ON SHARED_LRM.FMA_V.FMA_ID = SHARED_LRM.XREF_OVL_FMA_OVERLAP.FMA_ID
-    INNER JOIN SHARED_LRM.FMA_V FMA_V_1 ON SHARED_LRM.XREF_OVL_FMA_OVERLAP.FMA_XREF_ID = FMA_V_1.FMA_ID
-    ON SHARED_LRM.TS.TS_ID = SHARED_LRM.FMA_V.TS_ID
-  WHERE
-    SHARED_LRM.TS.TS_NM = '{timber_sale}' AND SHARED_LRM.XREF_OVL_FMA_OVERLAP.ACRES_OVERLAP > 0.1
-  ORDER BY
-    SHARED_LRM.FMA_V_1.FMA_DT
-  """
+  '''
+  Query ropa to get a list of timbersale names/id's and to FMA names/ids 
+  to populate the selection tables of the index page. For timbersales, we only
+  want ones that are planned or sold. For FMAs we only want timber harvest 
+  activities that are planned. 
+  '''
+  try:
+    timber_sales, fmas = get_index_form_values(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD)
+  except:
+    logger.debug("The ROPA query for the index page failed.")
+  return render(request, 'report/index.html', {'timber_sales' : timber_sales, 'fmas' : fmas})
   
-  connection = cx_Oracle.connect(ORACLE_USERNAME, ORACLE_PASSWORD, ORACLE_DATABASE)
-  cursor = connection.cursor()
-  cursor.execute(fma_overlap_query)
-  # overlapping_fmas = list(row for row in cursor.fetchall())
-  overlapping_fmas = []
-  for row in cursor.fetchall():
-    # The comments field is a LOB object, so we need the read method, which won't work if value is None. 
-    if row[8] != None:
-      comments = row[8].read()
-    else:
-      comments = "None"
     
-    overlapping_fmas.append([row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], comments])
-  
-  
 
-  # Get the info for overlapping fmas that have regen activity (i.e. they hit the REGEN table)
-  regen_query = f"""
-  SELECT
-    FMA_V_1.FMA_ID,
-    SHARED_LRM.FMA_REGEN.SPECIES_CD,
-    SHARED_LRM.FMA_REGEN.STOCK_TYPE_CD,
-    SHARED_LRM.FMA_REGEN.TPA,
-    SHARED_LRM.FMA_REGEN.AREA_REGEN,
-    SHARED_LRM.FMA_REGEN.STOCK_TOTAL
-  FROM
-    SHARED_LRM.FMA_V
-    INNER JOIN SHARED_LRM.XREF_OVL_FMA_OVERLAP ON SHARED_LRM.FMA_V.FMA_ID = SHARED_LRM.XREF_OVL_FMA_OVERLAP.FMA_ID
-    INNER JOIN SHARED_LRM.FMA_V FMA_V_1 ON SHARED_LRM.XREF_OVL_FMA_OVERLAP.FMA_XREF_ID = FMA_V_1.FMA_ID
-    INNER JOIN SHARED_LRM.FMA_REGEN  ON FMA_V_1.FMA_ID = SHARED_LRM.FMA_REGEN.FMA_ID
-    INNER JOIN SHARED_LRM.TS ON SHARED_LRM.FMA_V.TS_ID = SHARED_LRM.TS.TS_ID
-  WHERE
-    SHARED_LRM.TS.TS_NM = '{timber_sale}' AND SHARED_LRM.XREF_OVL_FMA_OVERLAP.ACRES_OVERLAP > 0.1
+def timber_sale_report(request):
   """
-  cursor.execute(regen_query)
-  regen = [row for row in cursor.fetchall()]
-
-  #Get the info for the overlapping fmas that have managment activities (i.e. they hit the MATERIAL table)
-  material_query = f"""
-  SELECT
-    FMA_V_1.FMA_ID,
-    SHARED_LRM.FMA_MATERIAL.MATERIAL_QTY,
-    SHARED_LRM.FMA_MATERIAL.UOM_CD,
-    SHARED_LRM.FMA_MATERIAL.MATERIAL_QTY_AC,
-    SHARED_LRM.FMA_MATERIAL.MATERIAL_COST,
-    SHARED_LRM.FMA_MATERIAL.MATERIAL_COST_AC
-  FROM
-    SHARED_LRM.FMA_V
-    INNER JOIN SHARED_LRM.XREF_OVL_FMA_OVERLAP ON SHARED_LRM.FMA_V.FMA_ID = SHARED_LRM.XREF_OVL_FMA_OVERLAP.FMA_ID
-    INNER JOIN SHARED_LRM.FMA_V FMA_V_1 ON SHARED_LRM.XREF_OVL_FMA_OVERLAP.FMA_XREF_ID = FMA_V_1.FMA_ID
-    INNER JOIN SHARED_LRM.FMA_MATERIAL  ON FMA_V_1.FMA_ID = SHARED_LRM.FMA_MATERIAL.FMA_ID
-    INNER JOIN SHARED_LRM.TS ON SHARED_LRM.FMA_V.TS_ID = SHARED_LRM.TS.TS_ID
-  WHERE
-    SHARED_LRM.TS.TS_NM = '{timber_sale}' AND SHARED_LRM.XREF_OVL_FMA_OVERLAP.ACRES_OVERLAP > 0.1
+  This view uses queries from queries.py to retrieve the information we need from Oracle
+  that is specifict to the timber sale report. The timber sale report might contain several
+  harvest activities, each with it's own set of overlapping activities. 
+  It then uses PDFKit to render the PDF to the client. 
   """
-  cursor.execute(material_query)
-  material = [row for row in cursor.fetchall()]
 
-  # Get the info for the overlapping fmas that have survey activities (i.e. they hit the SURVEY table)
-  survey_query = f"""
-  SELECT
-    FMA_V_1.FMA_ID,
-    SHARED_LRM.FMA_SURVEY.SPECIES_CD,
-    SHARED_LRM.FMA_SURVEY.TPA_ALL,
-    SHARED_LRM.FMA_SURVEY.TPA_PLANTED,
-    SHARED_LRM.FMA_SURVEY.TPA_NATURAL,
-    SHARED_LRM.FMA_SURVEY.DAMAGE_CD,
-    SHARED_LRM.FMA_SURVEY.DBH,
-    SHARED_LRM.FMA_SURVEY.CROWN_RATIO,
-    SHARED_LRM.FMA_SURVEY.SURVIVAL_PERCENT,
-    SHARED_LRM.FMA_SURVEY.HEIGHT
+  # Retrieve the timber sale name and id from the GET request.
+  try: 
+    timber_sale=request.GET.get('timber-sale')
+    timber_sale_name = timber_sale.split(' -')[0]
+    timber_sale_id = timber_sale.split(' - ')[1]
+  except:
+     logger.debug("The timber sale report page did not receive a valid timber \
+                  sale name-id")
 
-  FROM
-    SHARED_LRM.FMA_V
-    INNER JOIN SHARED_LRM.XREF_OVL_FMA_OVERLAP ON SHARED_LRM.FMA_V.FMA_ID = SHARED_LRM.XREF_OVL_FMA_OVERLAP.FMA_ID
-    INNER JOIN SHARED_LRM.FMA_V FMA_V_1 ON SHARED_LRM.XREF_OVL_FMA_OVERLAP.FMA_XREF_ID = FMA_V_1.FMA_ID
-    INNER JOIN SHARED_LRM.FMA_SURVEY  ON FMA_V_1.FMA_ID = SHARED_LRM.FMA_SURVEY.FMA_ID
-    INNER JOIN SHARED_LRM.TS ON SHARED_LRM.FMA_V.TS_ID = SHARED_LRM.TS.TS_ID
-  WHERE
-    SHARED_LRM.TS.TS_NM = '{timber_sale}' AND SHARED_LRM.XREF_OVL_FMA_OVERLAP.ACRES_OVERLAP > 0.1
-  """
-  cursor.execute(survey_query)
-  survey = [row for row in cursor.fetchall()]
+  try:
+    # Create a list of FMAs, and their details, that overlap the timber harvest FMAs
+    overlapping_fmas = get_overlapping_fma_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, timber_sale_name)
+    # Get the info for overlapping fmas that have regen activity (i.e. they hit the REGEN table)
+    regen = get_regen_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, timber_sale_name)
+    #Get the info for the overlapping fmas that have managment activities (i.e. they hit the MATERIAL table)
+    material = get_material_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, timber_sale_name)
+    # Get the info for the overlapping fmas that have survey activities (i.e. they hit the SURVEY table)
+    survey = get_survey_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, timber_sale_name)
+    # Get the details for each fma in the timber sale
+    fma_details = get_fma_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, timber_sale_name)
+  except:
+    logger.debug("One of the ROPA queries for the timber-sale-report failed.")
 
-  # Get the details for each fma in the timber sale
-  fma_detail_query = f"""
-  SELECT
-  SHARED_LRM.FMA_HARVEST.FMA_ID,
-  SHARED_LRM.TS.TS_NM,
-  SHARED_LRM.FMA_HARVEST.COMMENTS,
-  SHARED_LRM.FMA_V.FMA_NM,
-  SHARED_LRM.FMA_V.FMA_STATUS_CD,
-  SHARED_LRM.FMA_V.FMA_DT,
-  SHARED_LRM.FMA_V.FMA_TYPE_CD,
-  SHARED_LRM.FMA_V.TECHNIQUE_CD,
-  SHARED_LRM.FMA_V.CREW_CD,
-  SHARED_LRM.FMA_V.ACRES_TREATED,
-  SHARED_LRM.FMA_V.COMMENTS,
-  SHARED_LRM.FMA_V.REGION_NM,
-  SHARED_LRM.FMA_V.DISTRICT_NM,
-  SHARED_LRM.FMA_V.ADMIN_NM
-  FROM
-      SHARED_LRM.FMA_HARVEST
-      RIGHT JOIN SHARED_LRM.TS ON SHARED_LRM.FMA_HARVEST.TS_ID = SHARED_LRM.TS.TS_ID
-      LEFT JOIN SHARED_LRM.FMA_V ON SHARED_LRM.FMA_HARVEST.FMA_ID = SHARED_LRM.FMA_V.FMA_ID
-  WHERE
-    SHARED_LRM.TS.TS_NM = '{timber_sale}'
-  ORDER BY
-    SHARED_LRM.FMA_V.FMA_NM
-  """
-  cursor.execute(fma_detail_query)
-  fma_details = {}
-  # Deal with the LOB object again
-  for row in cursor.fetchall():
-    if row[10] != None:
-      fma_comments = row[10].read()
-    else:
-      fma_comments = "None"
-    fma_details[row[3]] = {}
-    fma_details[row[3]]["fma_id"] = row[0]
-    fma_details[row[3]]["harvest_comments"] = row[2]
-    fma_details[row[3]]["fma_status"] = row[4]
-    fma_details[row[3]]["fma_date"] = row[5]
-    fma_details[row[3]]["fma_type"] = row[6]
-    fma_details[row[3]]["fma_technique"] = row[7]
-    fma_details[row[3]]["fma_crew"] = row[8]
-    fma_details[row[3]]["fma_acres_treated"] = row[9]
-    fma_details[row[3]]["fma_comments"] = fma_comments
-    fma_details[row[3]]["fma_region"] = row[11]
-    fma_details[row[3]]["fma_district"] = row[12]
-    fma_details[row[3]]["fma_admin"] = row[13]
-  cursor.close()
-  connection.close()
-  del cursor
-  del connection
+  # Get a list of the fmas that have regen activity so that we can only add tables if needed. 
+  needs_regen_table = [row[0] for row in regen]
+  # Same for materials
+  needs_materials_table = [row[0] for row in material]
+  # And survey activities
+  needs_survey_table = [row[0] for row in survey]
+
+  # These are the parameters that are passed to the Django render method to populate
+  # the timber-sale-report.html templates. 
   params = {
     'overlapping_fmas' : overlapping_fmas,
     'fma_details' : fma_details,
     'timber_sale' : timber_sale,
     'regen' : regen,
     'material' : material,
-    'survey' : survey
+    'survey' : survey,
+    'needs_regen_table' : needs_regen_table,
+    'needs_materials_table' : needs_materials_table,
+    'needs_survey_table' : needs_survey_table
   }
+
+  # wkhtmltopdf options for creating the PDF. Tons of options here:
+  # https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
   options = {
     'print-media-type' : '',
     'page-size' : 'Letter',
-    'footer-center':'[page] of [topage]'
+    'footer-center':'[page] of [topage]',
+    'footer-right':'Report Generated [date]'
   }
+
+  # Tell pdfkit where to find the css files to style the report
   css = [
-    'report/static/report/bootstrap/css/bootstrap.min.css',
-    'report/static/report/style.css'
+    r'silvreport/static/report/style.css'
+  ]
+
+  html_template = get_template('report/timber-sale-report.html')
+  html = html_template.render(params)
+  
+  # Render the PDF
+  try:
+    path_to_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+    config = pdfkit.configuration(wkhtmltopdf=path_to_wkhtmltopdf)
+    pdf = pdfkit.from_string(html, False, css=css, options=options, configuration=config)
+    response = HttpResponse(pdf, content_type = 'application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{timber_sale_name}.pdf"'
+  except:
+    logger.debug("The timber-sale-report queries ran but wkhtmltopdf failed to render the PDF.")
+  return response
+
+  """ For testing changes to page layout, it is usually easier to view the page
+  in html in a web browser, instead of rendering a PDF every time. To do this
+  simply comment out the six lines above, and uncomment the line below.  """
+  #return render(request, 'report/timber-sale-report.html', params)
+
+def fma_report(request):
+  """
+  This view is almost identical to the one above, however now we are just looking
+  at one harvest activity, instead of a timber sale that might consist of several
+  harvest activities. 
+  """
+  try:
+    # Get the fma name and id from the GET request. 
+    fma = request.GET.get('fma')
+    fma_id = fma.split(' - ')[1]
+    fma_name = fma.split(' - ')[0]
+  except:
+    logger.debug("The fma-report page did not recieve a valid fma name-id from the \
+                  index page.")
+
+  try:
+    # Run the Oracle queries. 
+    fma_details = get_fma_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, fma_id, ts=False)
+    overlapping_fmas = get_overlapping_fma_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, fma_id, ts=False)
+    regen = get_regen_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, fma_id, ts=False)
+    material = get_material_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, fma_id, ts=False)
+    survey = get_survey_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, fma_id, ts=False)
+  except:
+    logger.debug("One fo the ROPA queries for the fma-report page failed.")
+
+  # Get a list of the fmas that have regen activity so that we can only add tables if needed. 
+  needs_regen_table = [row[0] for row in regen]
+  # Same for materials
+  needs_materials_table = [row[0] for row in material]
+  # And survey activities
+  needs_survey_table = [row[0] for row in survey]
+
+  # Pass in the parameters
+  params = {
+    'overlapping_fmas' : overlapping_fmas,
+    'fma_details' : fma_details,
+    'regen' : regen,
+    'material' : material,
+    'survey' : survey,
+    'needs_regen_table' : needs_regen_table,
+    'needs_materials_table' : needs_materials_table,
+    'needs_survey_table' : needs_survey_table
+  }
+# wkhtmltopdf options. Tons of options here:
+  # https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
+  options = {
+    'print-media-type' : '',
+    'page-size' : 'Letter',
+    'footer-center':'[page] of [topage]',
+    'footer-right':'Report Generated [date]'
+  }
+
+  # Tell pdfkit where to find the css files to style the report
+  css = [
+    r'silvreport/static/report/style.css'
   ]
 
   html_template = get_template('report/fma-report.html')
   html = html_template.render(params)
   
 
-
-  path_to_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-  config = pdfkit.configuration(wkhtmltopdf=path_to_wkhtmltopdf)
-  pdf_options = {
-    
-  }
-  pdf = pdfkit.from_string(html, False, css=css, options=options, configuration=config)
-  response = HttpResponse(pdf, content_type = 'application/pdf')
-  response['Content-Disposition'] = 'attachment; filename="report.pdf"'
+  try:
+    path_to_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+    config = pdfkit.configuration(wkhtmltopdf=path_to_wkhtmltopdf)
+    pdf = pdfkit.from_string(html, False, css=css, options=options, configuration=config)
+    response = HttpResponse(pdf, content_type = 'application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{fma_name}.pdf"'
+  except:
+    logger.debug("The ROPA queries for the fma-report page succeded but wkhtmltopdf failed\
+                  to render the PDF.")
   return response
   #return render(request, 'report/fma-report.html', params)
-

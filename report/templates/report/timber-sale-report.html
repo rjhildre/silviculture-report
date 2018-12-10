@@ -60,7 +60,7 @@
                             <div class="col-sm-3">Region: <strong>{{ v.fma_region }}</strong></div>
                             <div class="col-sm-3">District: <strong>{{ v.fma_district }}</strong></div>
                             <div class="col-sm-3">Admin: <strong>{{ v.fma_admin }}</strong></div>
-                            <div class="col-sm-3">TS Name: <strong>{{ v.ts_name }}</strong></div>
+                            <div class="col-sm-3" id="timber-sale">TS Name: <strong>{{ v.ts_name }}</strong></div>
                     </div>
                 </div>
                 <div id="fma-body">
@@ -173,7 +173,7 @@
                                         <!-- <caption><strong>Survey Findings</strong></caption> -->
                                         <tr>
                                             <th>Species</th>
-                                            <th id='tpa-all'>TPA&nbsp;All</th>
+                                            <th>TPA&nbsp;All</th>
                                             <!-- <th>TPA Planted</th>
                                             <th>TPA Natural</th> -->
                                             <th>Damage Type</th>
@@ -203,8 +203,9 @@
                     {% endif %}
                     {% endfor %}
                 </div>
-                <div>This page intentionally left blank. </div>
+                
             </div>
             {% endfor %}   
-        </div>
+            <div>This page intentionally left blank. </div>
+            
     </body>

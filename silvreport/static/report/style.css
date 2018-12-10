@@ -1,18 +1,42 @@
+/* report folder */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
 table {
     margin-bottom: 10px;
     border: 1px solid #494949;
     page-break-inside: avoid;
+    caption-side: top !important;
+    border-collapse: collapse !important;
 }
 td, th {
     border: 1px solid #494949;
     padding: 8px;
+    
+}
+
+th {
+    background-color: rgb(224, 224, 224);
+}
+
+tr {
+    line-height: 8px;
 }
 
 caption {
     text-align: center;
     caption-side: top;
     color: black;
+    font-size: 20px;
+    padding-top: 5px;
 
+
+}
+
+#tpa-all {
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
 #index {
@@ -36,12 +60,15 @@ caption {
 }
 
 #left-content {
-    font-family: 'Times New Roman', Times, serif;
     font-size: large;
 }
 
 #fma-header {
     border-bottom: 1px solid;
+}
+
+#fma-activity {
+    text-align: center;
 }
 
 #overlap-detail {
@@ -51,6 +78,7 @@ caption {
 #overlapping-activities {
     font-style: italic;
     color: cornflowerblue !important;
+    font-size: 20px;
 }
 
 #overlap-header {
@@ -67,6 +95,8 @@ caption {
 @page {
     size: legal;
 }
+/* wkhtml to pdf did not play nice with bootstrap, so I just made a little bit of 
+bootstrap funtionalitly here. */
 .row::after {
     content: '';
     display: table;
@@ -85,6 +115,11 @@ caption {
     width: 25%;
 }
 
+.col-sm-4 {
+    float: left;
+    width: 33%;
+}
+
 
 .col-sm-12 {
     float: left;
@@ -93,3 +128,4 @@ caption {
 .avoid-break {
     page-break-inside: avoid;
 }
+
