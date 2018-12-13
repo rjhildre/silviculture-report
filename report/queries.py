@@ -1,10 +1,10 @@
-"""Perform queries of fma data to populate fma-report and timber-sale-report
+"""Perform queries of fma data to populate the fma-report and timber-sale-reports
 
 These functions perform the nessecary database queries and data parsing
 to populate the Django templating on the two report pages.
 """
 
-import cx_Oracle
+import cx_Oracle #https://cx-oracle.readthedocs.io/en/latest/
 
 def get_index_form_values(db: str, user: str, password: str) -> tuple:
     '''
@@ -27,7 +27,7 @@ def get_index_form_values(db: str, user: str, password: str) -> tuple:
     FROM
         SHARED_LRM.TS
     WHERE
-        TS_STATUS_CD = 'PLANNED' OR TS_STATUS_CD = 'SOLD'
+        TS_STATUS_CD = 'PLANNED' OR TS_STATUS_CD = 'SOLD' OR TS_STATUS_CD = 'COMPLETED'
     ORDER BY
         TS_NM
     """

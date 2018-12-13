@@ -101,7 +101,7 @@
                         <div class="col-sm-2">{{ fma_tech }}</div>
                         <div class="col-sm-1">{{ fma_date|date:"m/d/y" }}</div>
                         <div class="col-sm-2">{{ fma_status }}</div>
-                        <div class="col-sm-2">{{ acres|floatformat:2 }}</div>
+                        <div class="col-sm-2">{{ acres|floatformat:1 }}</div>
                     </div> 
                     {% if comments != 'None' %}
                         <div class="row"><div class="col-sm-12">Comments: {{ comments|linebreaks }}</div></div>
@@ -175,7 +175,7 @@
                                             <th id='tpa-all'>TPA&nbsp;All</th>
                                             <!-- <th>TPA Planted</th>
                                             <th>TPA Natural</th> -->
-                                            <th>Damage Type</th>
+                                            <th>Damage</th>
                                             <th>DBH</th>
                                             <!-- <th>Crow Ratio</th>
                                             <th>Survival %</th> -->

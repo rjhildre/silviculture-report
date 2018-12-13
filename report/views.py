@@ -44,8 +44,8 @@ def timber_sale_report(request):
     timber_sale_name = timber_sale.split(' -')[0]
     timber_sale_id = timber_sale.split(' - ')[1]
   except:
-     logger.debug("The timber sale report page did not receive a valid timber \
-                  sale name-id")
+     logger.debug("The timber sale report page did not receive a valid timber" +
+                  "sale name-id")
 
   try:
     # Create a list of FMAs, and their details, that overlap the timber harvest FMAs
@@ -127,8 +127,8 @@ def fma_report(request):
     fma_id = fma.split(' - ')[1]
     fma_name = fma.split(' - ')[0]
   except:
-    logger.debug("The fma-report page did not recieve a valid fma name-id from the \
-                  index page.")
+    logger.debug("The fma-report page did not recieve a valid fma name-id from the" +
+                  "index page.")
 
   try:
     # Run the Oracle queries. 
