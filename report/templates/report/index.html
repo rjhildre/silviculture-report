@@ -28,46 +28,7 @@
         <!-- Custom CSS -->
         <link rel="stylesheet" href="{% static 'report/style.css' %}" type="text/css">
         <!-- Validation script to enusre form submission matches on of the options in the datalist -->
-        <script>
-        function datalistValidator(salename) {
-            var obj = $("#timber-sales").find("option[value='" + salename + "']");
-            if(obj != null && obj.length>0) {
-                return true
-            }
-            return false;
-        }
-        $(document).ready(function() {
-            $('#timber-sale-form').submit(function() {
-                var salename = $("#sale-name-field").val();
-                if (datalistValidator(salename)) {
-                    return true;
-                }
-                alert("Hmm... your submission of " + salename + " does not seem to be on the list of timber sale names. Please make sure you selected an item" +
-                "from the dropdown list and then hit submit again.");
-                return false;
-            })
-        })
-        </script>
-        <script>
-                function fmalistValidator(salename) {
-                    var obj = $("#fmas-list").find("option[value='" + salename + "']");
-                    if(obj != null && obj.length>0) {
-                        return true
-                    }
-                    return false;
-                }
-                $(document).ready(function() {
-                    $('#fma-sale-form').submit(function() {
-                        var salename = $("#fma-name-field").val();
-                        if (fmalistValidator(salename)) {
-                            return true;
-                        }
-                        alert("Hmm... your submission of " + salename + " does not seem to be on the list of fma sale names. Please make sure you selected an item" +
-                        "from the dropdown list and then hit submit again.");
-                        return false;
-                    })
-                })
-                </script>
+        
     </head>
     
     <body id="index">
@@ -80,21 +41,21 @@
             </div>
             <div class="row">
                 <div class="col-sm-5 offset-sm-1">
-                    <p id="left-content">Select a timber sale or timber harvest activity, 
-                        then click the “Submit” button to generate a Silvicultural Prescription Report.<br>
-                        Try typing the name of your timber sale or havest activitiy to go straight to it.  
+                    <p id="left-content">Begin by picking your region. 
                     </p>
                 </div>
-                <!---------------------------------------------------Timber sale drop down ------------------------------>
+                <!---------------------------------------------------Region Selection Dropodown ------------------------------>
                 <div class="col-sm-4 offset-sm-1 align-self-center">
-                    <form action="timber-sale-report" id="timber-sale-form" target="_blank">
-                        Timber Sale Name - ID: <br>
-                        <input list="timber-sales" name="timber-sale" id="sale-name-field" required>
-                        <datalist id="timber-sales">
-                            {% for timber_sale in timber_sales %}
-                            <option value="{{ timber_sale.1 }} - {{ timber_sale.0 }}">
-                            {% endfor %}
-                            </datalist>
+                    <form action= "/report/activity/" id="timber-sale-form" target="_self" method="GET">
+                        Region: <br>
+                        <select name="region" id="timber-sales">
+                            <option value="NORTHEAST">Northeast</option>
+                            <option value="NORTHWEST">Northwest</option>
+                            <option value="OLYMPIC">Olympic</option>
+                            <option value="PACIFIC CASC">Pacific Cascade</option>
+                            <option value="SO PUGET">South Puget</option>
+                            <option value="SOUTHEAST">Southeast</option>
+                        </select>
                         <input type="submit" value="Submit">
                     </form>
                 </div>
@@ -103,19 +64,6 @@
                 <div class="col-sm-5 offset-sm-1">
                     <p id="left-content">
                     </p>
-                </div>
-                <!---------------------------------------------------------------FMA dropdown --------------------------------------------->
-                <div class="col-sm-4 offset-sm-1 align-self-center">
-                    <form action="fma-report" id="fma-sale-form" target="_blank">
-                        Harvest Activity Name - ID:<br>
-                        <input list="fmas-list" name="fma" id="fma-name-field" required>
-                        <datalist id="fmas-list">
-                            {% for fma in fmas %}
-                            <option value="{{ fma.0 }} - {{ fma.1 }}"></option>
-                            {% endfor %}
-                            </datalist>
-                        <input type="submit" value="Submit">
-                    </form>
                 </div>
             </div>
         </div>

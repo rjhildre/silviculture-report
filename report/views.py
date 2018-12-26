@@ -7,7 +7,7 @@ from django.template import Context
 import logging
 import pdfkit #https://ourcodeworld.com/articles/read/241/how-to-create-a-pdf-from-html-in-django
 from report.queries import get_fma_details, get_overlapping_fma_details, \
-get_regen_details, get_material_details, get_survey_details, get_index_form_values
+get_regen_details, get_material_details, get_survey_details, get_activity_form_values
 
 # Oracle database connection configuration, set as environmental variables.
 ORACLE_DATABASE = os.environ.get('ROPA')
@@ -17,16 +17,34 @@ ORACLE_PASSWORD = os.environ.get('ROPA_PASSWORD')
 logger = logging.getLogger('file_logger')
 def index(request):
   '''
-  Query ropa to get a list of timbersale names/id's and to FMA names/ids 
-  to populate the selection tables of the index page. For timbersales, we only
-  want ones that are planned or sold. For FMAs we only want timber harvest 
-  activities that are planned. 
+  Index page for picking which region to query. Origionally we had all
+  of the activities in the state in the activity picker page. This caused performance
+  issues as the form selection box contained tens of thousands of items. By breaking
+  this down by region, we were able to get the number of items to below 6000. The 
+  landing page now asks the user to pick their region before selecting a timber sale
+  activity. 
   '''
+
+  return render(request, 'report/index.html')
+  
+def activity(request):
+  """
+  This view uses the region a query from the queries.py to select the timber sale
+  names/ids and harvest activity names/ids from ropa that correspond to the region
+  selected by the user. All timbersale activities that are planned, sold or completed
+  are included. The values queried from ropa populate the corresponding dropdown
+  forms on the activity page. 
+  """
   try:
-    timber_sales, fmas = get_index_form_values(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD)
+    region = request.GET.get('region')
   except:
-    logger.debug("The ROPA query for the index page failed.")
-  return render(request, 'report/index.html', {'timber_sales' : timber_sales, 'fmas' : fmas})
+    logger.debug("The activiy page did not recieve a valid region name to query ropa.")
+  try:
+    timber_sales, fmas = get_activity_form_values(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, region)
+  except:
+    logger.debug("The ROPA query for the activity page failed.")
+  return render(request, 'report/activity.html', {'timber_sales' : timber_sales, 'fmas' : fmas})
+  
   
     
 
@@ -138,7 +156,7 @@ def fma_report(request):
     material = get_material_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, fma_id, ts=False)
     survey = get_survey_details(ORACLE_DATABASE, ORACLE_USERNAME, ORACLE_PASSWORD, fma_id, ts=False)
   except:
-    logger.debug("One fo the ROPA queries for the fma-report page failed.")
+    logger.debug("One of the ROPA queries for the fma-report page failed.")
 
   # Get a list of the fmas that have regen activity so that we can only add tables if needed. 
   needs_regen_table = [row[0] for row in regen]

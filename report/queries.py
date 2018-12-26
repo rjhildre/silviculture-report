@@ -6,44 +6,46 @@ to populate the Django templating on the two report pages.
 
 import cx_Oracle #https://cx-oracle.readthedocs.io/en/latest/
 
-def get_index_form_values(db: str, user: str, password: str) -> tuple:
+def get_activity_form_values(db: str, user: str, password: str, region: str) -> tuple:
     '''
     Query ropa to get a list of timbersale names/id's and to FMA names/ids 
-    to populate the selection tables of the index page. For timbersales, we only
-    want ones that are planned or sold. For FMAs we only want timber harvest 
-    activities that are planned. 
+    to populate the selection tables of the activity page.
 
     Parameters:
         db: the ropa database. 
         user: The ropa username
-        password: the ropa password. 
+        password: the ropa password.
+        region: the region name from the GET request submitted by the index page. 
     '''
     
     connection = cx_Oracle.connect(user, password, db)
     cursor = connection.cursor()
     tsnm_tsid_query = """
-    SELECT
-        TS_ID, TS_NM, TS_STATUS_CD
+    SELECT DISTINCT
+        SHARED_LRM.TS.TS_ID,
+        SHARED_LRM.TS.TS_NM,
+        SHARED_LRM.FMA_V.REGION_NM
     FROM
         SHARED_LRM.TS
+        LEFT JOIN SHARED_LRM.FMA_V ON SHARED_LRM.TS.TS_ID = SHARED_LRM.FMA_V.TS_ID
     WHERE
-        TS_STATUS_CD = 'PLANNED' OR TS_STATUS_CD = 'SOLD' OR TS_STATUS_CD = 'COMPLETED'
+        SHARED_LRM.FMA_V.REGION_NM = :region OR SHARED_LRM.FMA_V.REGION_NM IS NULL
     ORDER BY
-        TS_NM
+        SHARED_LRM.TS.TS_NM
     """
-    cursor.execute(tsnm_tsid_query)
+    cursor.execute(tsnm_tsid_query, region=region)
     timber_sales = cursor.fetchall()
     fma_query = """
     SELECT
-        FMA_NM, FMA_ID 
+        FMA_NM, FMA_ID, REGION_NM 
     FROM
         SHARED_LRM.FMA_V
     WHERE
-        SHARED_LRM.FMA_V.FMA_TYPE_CD = 'TIM_HARV' AND SHARED_LRM.FMA_V.FMA_STATUS_CD = 'PLANNED'
+        SHARED_LRM.FMA_V.FMA_TYPE_CD = 'TIM_HARV' AND REGION_NM = :region
     ORDER BY
         SHARED_LRM.FMA_V.FMA_NM
     """
-    cursor.execute(fma_query)
+    cursor.execute(fma_query, region=region)
     fmas = cursor.fetchall()
     cursor.close()
     connection.close()
