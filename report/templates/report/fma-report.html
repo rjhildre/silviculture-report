@@ -41,7 +41,8 @@
             <div>
                 <div class="break-after"> <!--Break-after class gives us a page break after this section-->
                 <div id="fma-header">
-                    <div class="row justify-content-sm-center" id="fma-activity"><h4>Activity Information for FMA: {{ k }}</h4></div>
+                    <div class="row justify-content-sm-center" id="fma-activity"><h2>Activity Information for FMA: 
+                        <span style="color:red">{{ k }}</span></h2></div>
                     <div class="row">
                         <div class="col-sm-3">Activity ID: <strong>{{ v.fma_id }}</strong></div>
                         <div class="col-sm-3">Status: <strong>{{ v.fma_status }}</strong></div>
@@ -207,3 +208,6 @@
             {% endfor %}   
         </div>
     </body>
+
+
+    
